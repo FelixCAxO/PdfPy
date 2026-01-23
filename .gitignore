@@ -1,5 +1,5 @@
 # Python bytecode and cache
-pycache/
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -29,7 +29,7 @@ tests/fixtures/
 Thumbs.db
 
 # Project-specific output files
-Ignore the directories created by the script
+# Ignore the directories created by the script
 *_chapters/
 
 # Build and distribution artifacts
