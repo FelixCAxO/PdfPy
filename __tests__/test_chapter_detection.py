@@ -2,7 +2,7 @@ import pytest
 import fitz
 import re
 from pathlib import Path
-from pdfpy import Config, find_chapters_by_style, Chapter, _is_chapter_title
+from pdfpy import Config, find_chapters_by_style, Chapter, is_chapter_title
 
 @pytest.fixture
 def styled_pdf(tmp_path):
@@ -30,16 +30,16 @@ def test_is_chapter_title():
     pattern = re.compile(config.chapter_regex)
     
     span_ok = {"size": 20, "font": "Helvetica-Bold", "text": "Chapter 1"}
-    assert _is_chapter_title("Chapter 1", span_ok, pattern, config) is True
+    assert is_chapter_title("Chapter 1", span_ok, pattern, config) is True
     
     span_small = {"size": 12, "font": "Helvetica-Bold", "text": "Chapter 1"}
-    assert _is_chapter_title("Chapter 1", span_small, pattern, config) is False
+    assert is_chapter_title("Chapter 1", span_small, pattern, config) is False
     
     span_not_bold = {"size": 20, "font": "Helvetica", "text": "Chapter 1"}
-    assert _is_chapter_title("Chapter 1", span_not_bold, pattern, config) is False
+    assert is_chapter_title("Chapter 1", span_not_bold, pattern, config) is False
     
     span_wrong_text = {"size": 20, "font": "Helvetica-Bold", "text": "Introduction"}
-    assert _is_chapter_title("Introduction", span_wrong_text, pattern, config) is False
+    assert is_chapter_title("Introduction", span_wrong_text, pattern, config) is False
 
 def test_find_chapters_by_style(styled_pdf):
     doc = fitz.open(styled_pdf)

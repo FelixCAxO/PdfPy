@@ -11,7 +11,7 @@ echo --- PDFPy Automatic Splitter ---
 echo Processing: "%~nx1"
 echo.
 
-python "%~dp0pdfpy.py" "%~1"
+python -m pdfpy "%~1"
 
 echo.
 echo Script execution finished.

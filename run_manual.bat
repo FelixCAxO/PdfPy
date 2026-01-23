@@ -20,7 +20,7 @@ if "%pages%"=="" (
 )
 echo.
 
-python "%~dp0pdfpy.py" "%~1" --manual "%pages%"
+python -m pdfpy "%~1" --manual "%pages%"
 
 echo.
 echo Script execution finished.

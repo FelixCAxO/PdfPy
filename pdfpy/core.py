@@ -1,80 +1,16 @@
-"""
-A command-line utility to split a PDF file into separate chapters.
-
-This script offers two primary modes of operation:
-1.  Automatic Mode: Detects chapters using bookmarks or text style analysis.
-2.  Manual Mode: Splits the PDF based on a user-provided list of page numbers.
-
-Usage:
-    Automatic: python pdfpy.py path/to/your/document.pdf
-    Manual:    python pdfpy.py path/to/your/document.pdf --manual "5,10,56"
-
-Limitation: The automatic mode cannot process image-based (scanned) PDFs.
-"""
-
-import argparse
 import re
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import fitz  # PyMuPDF
 
-VERSION = "2.0.0"
-CONFIG_FILE_NAME = "chapters_config.md"
-MAX_TITLE_LENGTH = 100
-TITLE_CLEANUP_REGEX = r'[\\/*?:"<>|]'
-
-
-@dataclass
-class Chapter:
-    """Represents a single chapter with a title and starting page."""
-    title: str
-    page: int
-
-
-@dataclass
-class Config:
-    """Configuration for style-based chapter detection."""
-    chapter_regex: str = r'^Chapter\s+\d+'
-    min_font_size: float = 16.0
-    must_be_bold: bool = True
-
-    @staticmethod
-    def from_file(config_path: Path) -> 'Config':
-        """Parses the chapter style configuration file."""
-        config = Config()
-        if not config_path.is_file():
-            print(f"Info: Configuration file not found at '{config_path}'. Using defaults.")
-            return config
-
-        try:
-            with config_path.open('r', encoding='utf-8') as f:
-                for line in f:
-                    if ':' in line and not line.strip().startswith('<!--'):
-                        key, value = map(str.strip, line.split(':', 1))
-                        if key == 'CHAPTER_REGEX':
-                            config.chapter_regex = value
-                        elif key == 'MIN_FONT_SIZE':
-                            try:
-                                config.min_font_size = float(value)
-                            except ValueError:
-                                pass
-                        elif key == 'MUST_BE_BOLD':
-                            config.must_be_bold = value.lower() == 'true'
-        except Exception as e:
-            print(f"Warning: Could not parse configuration file. Error: {e}")
-        
-        return config
-
-
-def _is_chapter_title(text: str, span: dict, pattern: re.Pattern, config: Config) -> bool:
-    """Checks if a text span matches the chapter title criteria."""
-    is_large_enough = span["size"] >= config.min_font_size
-    is_bold = "bold" in span["font"].lower()
-    bold_ok = not config.must_be_bold or is_bold
-    matches_pattern = pattern.match(text)
-    return is_large_enough and bold_ok and bool(matches_pattern)
+from .utils import (
+    TITLE_CLEANUP_REGEX,
+    MAX_TITLE_LENGTH,
+    Chapter,
+    Config,
+    is_chapter_title
+)
 
 
 def find_chapters_by_style(doc: fitz.Document, config: Config) -> List[Chapter]:
@@ -97,7 +33,7 @@ def find_chapters_by_style(doc: fitz.Document, config: Config) -> List[Chapter]:
             for line in block["lines"]:
                 for span in line["spans"]:
                     text = span["text"].strip()
-                    if _is_chapter_title(text, span, pattern, config):
+                    if is_chapter_title(text, span, pattern, config):
                         if not any(c.page == page_num + 1 for c in found_chapters):
                             found_chapters.append(
                                 Chapter(title=text, page=page_num + 1)
@@ -203,75 +139,3 @@ def process_pdf_manual(pages_str: str) -> Optional[List[Chapter]]:
     except ValueError:
         print("Error: Invalid page numbers provided. Please use comma-separated integers.")
         return None
-
-
-def main() -> None:
-    """Entry point for the command-line application."""
-    parser = argparse.ArgumentParser(description="Split a PDF document into chapters.")
-    parser.add_argument("pdf_file", type=Path, nargs='?', help="Path to the source PDF file.")
-    parser.add_argument(
-        "--manual",
-        metavar="PAGES",
-        type=str,
-        help="Provide a comma-separated list of starting page numbers.",
-    )
-    parser.add_argument(
-        "--merge",
-        action="store_true",
-        help="Merge the found sections into a single PDF instead of splitting.",
-    )
-    parser.add_argument(
-        "--version",
-        action="version",
-        version=f"%(prog)s {VERSION}",
-        help="Show the version of the script and exit."
-    )
-    args = parser.parse_args()
-
-    if not args.pdf_file:
-        parser.print_help()
-        return
-
-    pdf_path: Path = args.pdf_file
-
-    if not pdf_path.is_file() or pdf_path.suffix.lower() != '.pdf':
-        print(f"Error: Path '{pdf_path}' is not a valid PDF file.")
-        return
-
-    script_dir = Path(__file__).parent.resolve()
-    config_file = script_dir / CONFIG_FILE_NAME
-    
-    # Handle output path
-    if args.merge:
-        output_dest = pdf_path.parent / f"{pdf_path.stem}_merged.pdf"
-    else:
-        output_dest = pdf_path.parent / f"{pdf_path.stem}_chapters"
-
-    try:
-        doc = fitz.open(pdf_path)
-    except Exception as e:
-        print(f"Error: Could not read '{pdf_path}'. Reason: {e}")
-        return
-
-    chapters_to_split = []
-    if args.manual is not None:
-        print("Running in Manual Mode...")
-        chapters_to_split = process_pdf_manual(args.manual)
-    else:
-        print("Running in Automatic Mode...")
-        chapters_to_split = process_pdf_automatic(doc, config_file)
-
-    if chapters_to_split:
-        if args.merge:
-            merge_chapters(doc, chapters_to_split, output_dest)
-        else:
-            perform_split(doc, chapters_to_split, output_dest)
-    else:
-        print("No valid chapters found or an error occurred.")
-
-    doc.close()
-    print("\nProcessing complete.")
-
-
-if __name__ == '__main__':
-    main()
