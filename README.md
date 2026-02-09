@@ -1,14 +1,14 @@
-# PdfPy 📄✂️
+# PdfPy
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![Version](https://img.shields.io/badge/version-2.0.0-green.svg)](#)
 
-A powerful Python utility to split PDF documents into separate chapters using bookmark hierarchy, style-based detection, or manual page selection.
+PdfPy is a Python utility that splits PDF documents into chapters using bookmark hierarchy, style-based detection, or manual page selection.
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ```bash
 # Install dependencies
@@ -23,18 +23,18 @@ python -m pdfpy path/to/document.pdf --manual "5,10,15"
 
 ---
 
-## ✨ Features
+## Features
 
-- **🔍 Smart Detection**: Automatically identifies chapters using PDF bookmarks (TOC).
-- **🎨 Style Fallback**: If bookmarks are missing, it uses font size and regex patterns to find chapter titles.
-- **⚙️ Configurable**: Fine-tune detection rules in `chapters_config.md` without touching the code.
-- **🛠️ Manual Mode**: Explicitly define split points for precise control.
-- **🔗 Merge Option**: Consolidate detected sections into a single clean PDF.
-- **🖱️ Drag & Drop**: Windows-ready batch files for zero-command usage.
+- **Smart Detection**: Automatically identifies chapters using PDF bookmarks (TOC).
+- **Style Fallback**: If bookmarks are missing, it uses font size and regex patterns to find chapter titles.
+- **Configurable**: Fine-tune detection rules in `pdfpy/chapters_config.md` without touching the code.
+- **Manual Mode**: Explicitly define split points for precise control.
+- **Merge Option**: Consolidate detected sections into a single clean PDF.
+- **Drag & Drop**: Windows-ready batch files for zero-command usage.
 
 ---
 
-## 📦 Installation
+## Installation
 
 1. **Clone the repository**:
    ```bash
@@ -49,11 +49,11 @@ python -m pdfpy path/to/document.pdf --manual "5,10,15"
 
 ---
 
-## 🚀 Usage
+## Usage
 
 ### Command Line Interface
 
-PdfPy is now structured as a package. Run it using:
+PdfPy is structured as a package. Run it using:
 
 ```bash
 # Automatic mode (bookmarks -> style fallback)
@@ -78,7 +78,7 @@ python -m pdfpy path/to/your/document.pdf --merge
 
 ---
 
-## 🔧 Configuration
+## Configuration
 
 Heuristic detection settings are managed in `pdfpy/chapters_config.md`:
 
@@ -88,6 +88,6 @@ Heuristic detection settings are managed in `pdfpy/chapters_config.md`:
 
 ---
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
