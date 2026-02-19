@@ -1,65 +1,116 @@
 # PDFPy Documentation
 
-PDFPy is a command-line utility designed to split PDF documents into chapters or sections based on bookmarks, text styles, or manual page ranges.
+## 1. Sprint Outcome (TDD)
 
-## 1. Core Architecture
+This sprint followed strict TDD:
+1. Expanded edge-case and scale coverage first in `__tests__/`.
+2. Ran tests in red phase to expose real failures.
+3. Refactored implementation to fix root causes (no feature removals).
+4. Re-ran full suite to green.
 
-The system is modularized for clarity and testability:
-- `pdfpy/cli.py`: Command-line interface and argument parsing.
-- `pdfpy/core.py`: Core logic for PDF processing and splitting.
-- `pdfpy/utils.py`: Shared utilities, constants, and data structures.
-- `pdfpy/__main__.py`: Entry point for package-level execution.
+Current test result: `34 passed`.
 
-### 1.1. Key Classes and Data Structures
+## 2. Architecture
 
-- **`Chapter` (Dataclass)**: Represents a detected or specified section with a title and a starting page number (1-indexed).
-- **`Config` (Dataclass)**: Manages style-based detection parameters.
-  - `chapter_regex`: Regex pattern to match chapter titles.
-  - `min_font_size`: Minimum font size threshold.
-  - `must_be_bold`: Boolean flag for font weight requirement.
+Main modules:
+- `pdfpy/cli.py`: CLI entrypoint and user flow.
+- `pdfpy/core.py`: PDF processing orchestration and split/merge logic.
+- `pdfpy/utils.py`: shared data classes, constants, and detection helpers.
+- `pdfpy/__main__.py`: `python -m pdfpy` package execution.
 
-## 2. Execution
+Core data structures:
+- `Chapter(title: str, page: int)`
+- `Config(chapter_regex, min_font_size, must_be_bold, ocr_regexes, ocr_fallback_to_first_page, ocr_render_dpi)`
 
-The application can be executed as a module:
-```bash
-python -m pdfpy [pdf_file] [options]
-```
+## 3. Behavior Contracts
 
-## 3. Modes of Operation
+### 3.1 Automatic mode (`process_pdf_automatic`)
 
-### 3.1. Automatic Mode
-1.  **Bookmark Detection**: Attempts to retrieve Level 1 bookmarks (TOC).
-2.  **Style Fallback**: If no bookmarks are found, scans every page for text matching the `Config` criteria.
-3.  **Conflict Resolution**: Ensures unique pages and sorts chapters chronologically.
+- Uses Level 1 bookmarks first when available.
+- If no Level 1 bookmark chapters are available, falls back to style-based text detection.
+- For image/scanned PDFs with no extractable text:
+  - when `allow_ocr=False`: returns `[]` and reports OCR/manual guidance.
+  - when `allow_ocr=True`: attempts OCR extraction using configurable OCR regexes.
 
-### 3.2. Manual Mode
-- Accepts a comma-separated list of page numbers via the `--manual` flag.
-- **Smart Split**: If a single page number $N > 1$ is provided, the system automatically treats it as a split into $[1, N]$, creating two sections.
+### 3.2 OCR fallback for scanned PDFs (`find_chapters_by_ocr`)
 
-## 4. Features
+- Uses real OCR (no mocking) via runtime dependencies:
+  - `pytesseract`
+  - `Pillow`
+  - local Tesseract OCR binary
+- Tries standard Tesseract install paths automatically when PATH is missing.
+- Renders each page at configured DPI (`OCR_RENDER_DPI`) and OCRs grayscale images.
+- Matches OCR lines against dynamic regex set:
+  - `CHAPTER_REGEX`
+  - `OCR_REGEXES` list from config
+- If no OCR regex matches and `OCR_FALLBACK_TO_FIRST_PAGE=true`, it returns a single section at page 1 so scanned PDFs still split.
 
-### 4.1. Merged Output (`--merge`)
-Instead of creating multiple files, the system can consolidate all selected chapters into a single output PDF, preserving only the relevant pages.
+CLI support:
+- `python -m pdfpy your.pdf --ocr`
 
-### 4.2. Versioning (`--version`)
-Standard version tracking for CLI utility maintenance.
+### 3.3 Configurable OCR keys (`pdfpy/chapters_config.md`)
 
-## 5. Quality Assurance
+- `OCR_REGEXES`: `||`-separated regex list for OCR matching.
+- `OCR_FALLBACK_TO_FIRST_PAGE`: when true, scanned PDFs with no regex match still produce one split from page 1.
+- `OCR_RENDER_DPI`: OCR render DPI (higher can improve OCR accuracy but costs more time).
 
-### 5.1. Test Suite
-Located in `__tests__/`, the suite uses `pytest` and covers:
-- **Config Parsing**: Validates default values and file loading.
-- **Manual Processing**: Ensures correct transformation of user input.
-- **Chapter Detection**: Verifies style-based matching logic.
-- **Split Logic**: Confirms correct page range extraction and file creation.
-- **Execution**: Verifies package-level module execution.
+### 3.4 Style abstraction (`find_chapters_by_style`)
 
-### 5.2. Error Handling
-- Robust against missing configuration files (uses defaults).
-- Sanitizes file titles to prevent OS-level path errors.
-- Gracefully handles corrupt or invalid PDF files.
+- Regex compilation is case-insensitive.
+- Chapter detection uses style constraints from `Config`:
+  - minimum font size
+  - optional bold requirement
+  - regex match on span text
+- Only one chapter is captured per page (first valid match).
+- Invalid regex in config is handled safely by returning `[]`.
 
-## 6. Development Standards
-- **SOLID Principles**: Focused functions (SRP), clear data structures.
-- **TDD Workflow**: Features are verified against an automated test suite.
-- **Documentation**: Handcrafted external Markdown files for clarity.
+### 3.5 Manual mode (`process_pdf_manual`)
+
+- Input `None`, empty string, whitespace-only, or comma-only resolves to `[]`.
+- Empty comma tokens are ignored (`"1,,3"` => pages 1 and 3).
+- Any non-integer token or non-positive page (`<= 0`) is invalid and returns `None`.
+- Valid pages are de-duplicated and sorted.
+- Single page `N > 1` auto-expands to `[1, N]`.
+
+### 3.6 Split and merge normalization
+
+Split and merge share normalization semantics:
+- Sort chapters by page.
+- Remove duplicate chapter pages.
+- Ignore out-of-range pages (`< 1` or `> doc.page_count`).
+
+#### Split (`perform_split`)
+- Creates one PDF per normalized chapter range.
+- Skips invalid computed ranges safely.
+- Sanitizes file names by removing forbidden path characters.
+- Uses fallback file names (`Section_X`) when sanitized titles become empty.
+- Truncates titles to `MAX_TITLE_LENGTH`.
+
+#### Merge (`merge_chapters`)
+- Merges normalized chapter ranges in order.
+- Ignores invalid/out-of-range chapters safely.
+
+## 4. Test Coverage
+
+Test suite location: `__tests__/`
+
+Key coverage includes:
+- Config defaults, partial files, and loading behavior.
+- CLI/module execution.
+- Manual parsing edge cases (whitespace, empty tokens, invalid tokens, non-positive pages, dedupe/sort).
+- Style detection across text variants (case-insensitive matches, custom Roman numeral regex, invalid regex handling).
+- Automatic flow decisions (TOC Level 1 priority, fallback behavior, non-text PDF handling).
+- Scanned PDF OCR behavior (OCR detection, OCR no-match dynamic first-page fallback, OCR disabled behavior).
+- Split/merge boundary handling (invalid pages, duplicates, sanitized/truncated titles, ordered merge output).
+- Scale tests with large documents and many sections for split/merge/detection stability.
+
+## 5. Real PDF Validation
+
+Online integration sweeps were executed against text, mixed, and scanned PDFs.
+Observed result: scanned one-page files (`ccitt`, `skew`, `jbig2`) now produce merged output in OCR mode via dynamic first-page fallback.
+
+## 6. Quality Notes
+
+- Fixes are non-destructive and root-cause oriented.
+- OCR extraction is now config-driven and dynamic rather than single-regex only.
+- Public behavior is more predictable across manual, split, merge, and scanned-PDF OCR paths.

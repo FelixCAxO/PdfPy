@@ -35,6 +35,9 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Local temporary integration/probe artifacts
+.tmp_pdf_*/
+
 # Project specific
 *_chapters/
 *_merged.pdf

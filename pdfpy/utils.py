@@ -1,12 +1,19 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 VERSION = "2.0.0"
 CONFIG_FILE_NAME = "chapters_config.md"
 MAX_TITLE_LENGTH = 100
 TITLE_CLEANUP_REGEX = r'[\\/*?:"><|]'
+DEFAULT_OCR_REGEXES = [
+    r"^Chapter\s+\d+",
+    r"^Section\s+[\d.IVXLCDM]+",
+    r"^Part\s+[IVXLCDM\d]+",
+    r"^(Appendix|Annex)\s+[A-Z\d]+",
+    r"^(Capitulo|Seccion)\s+\d+",
+]
 
 
 @dataclass
@@ -19,12 +26,15 @@ class Chapter:
 @dataclass
 class Config:
     """Configuration for style-based chapter detection."""
-    chapter_regex: str = r'^Chapter\s+\d+'
+    chapter_regex: str = r"^Chapter\s+\d+"
     min_font_size: float = 16.0
     must_be_bold: bool = True
+    ocr_regexes: List[str] = field(default_factory=lambda: DEFAULT_OCR_REGEXES.copy())
+    ocr_fallback_to_first_page: bool = True
+    ocr_render_dpi: int = 300
 
     @staticmethod
-    def from_file(config_path: Path) -> 'Config':
+    def from_file(config_path: Path) -> "Config":
         """Parses the chapter style configuration file."""
         config = Config()
         if not config_path.is_file():
@@ -32,22 +42,35 @@ class Config:
             return config
 
         try:
-            with config_path.open('r', encoding='utf-8') as f:
-                for line in f:
-                    if ':' in line and not line.strip().startswith('<!--'):
-                        key, value = map(str.strip, line.split(':', 1))
-                        if key == 'CHAPTER_REGEX':
+            with config_path.open("r", encoding="utf-8") as file_handle:
+                for line in file_handle:
+                    if ":" in line and not line.strip().startswith("<!--"):
+                        key, value = map(str.strip, line.split(":", 1))
+                        if key == "CHAPTER_REGEX":
                             config.chapter_regex = value
-                        elif key == 'MIN_FONT_SIZE':
+                        elif key == "MIN_FONT_SIZE":
                             try:
                                 config.min_font_size = float(value)
                             except ValueError:
                                 pass
-                        elif key == 'MUST_BE_BOLD':
-                            config.must_be_bold = value.lower() == 'true'
-        except Exception as e:
-            print(f"Warning: Could not parse configuration file. Error: {e}")
-        
+                        elif key == "MUST_BE_BOLD":
+                            config.must_be_bold = value.lower() == "true"
+                        elif key == "OCR_REGEXES":
+                            regexes = [item.strip() for item in value.split("||") if item.strip()]
+                            if regexes:
+                                config.ocr_regexes = regexes
+                        elif key == "OCR_FALLBACK_TO_FIRST_PAGE":
+                            config.ocr_fallback_to_first_page = value.lower() == "true"
+                        elif key == "OCR_RENDER_DPI":
+                            try:
+                                dpi = int(value)
+                                if dpi > 0:
+                                    config.ocr_render_dpi = dpi
+                            except ValueError:
+                                pass
+        except Exception as error:
+            print(f"Warning: Could not parse configuration file. Error: {error}")
+
         return config
 
 

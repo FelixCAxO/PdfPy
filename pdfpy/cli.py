@@ -23,6 +23,11 @@ def main() -> None:
         help="Merge the found sections into a single PDF instead of splitting.",
     )
     parser.add_argument(
+        "--ocr",
+        action="store_true",
+        help="Enable OCR fallback for scanned/image-based PDFs (requires Tesseract + pytesseract + Pillow).",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {VERSION}",
@@ -45,7 +50,7 @@ def main() -> None:
     # which would be src/pdfpy/
     script_dir = Path(__file__).parent.resolve()
     config_file = script_dir / CONFIG_FILE_NAME
-    
+
     # Handle output path
     if args.merge:
         output_dest = pdf_path.parent / f"{pdf_path.stem}_merged.pdf"
@@ -64,7 +69,7 @@ def main() -> None:
         chapters_to_split = process_pdf_manual(args.manual)
     else:
         print("Running in Automatic Mode...")
-        chapters_to_split = process_pdf_automatic(doc, config_file)
+        chapters_to_split = process_pdf_automatic(doc, config_file, allow_ocr=args.ocr)
 
     if chapters_to_split:
         if args.merge:

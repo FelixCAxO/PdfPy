@@ -17,3 +17,15 @@ MIN_FONT_SIZE: 16
 <!-- Set to "true" if the chapter title must be bold.
 Set to "false" if boldness is not a requirement. -->
 MUST_BE_BOLD: true
+
+<!-- OCR regex list for scanned/image PDFs. Use "||" as separator.
+These patterns are tried dynamically in OCR mode, in addition to CHAPTER_REGEX. -->
+OCR_REGEXES: ^Chapter\s+\d+ || ^Section\s+[\d.IVXLCDM]+ || ^Part\s+[IVXLCDM\d]+ || ^(Appendix|Annex)\s+[A-Z\d]+ || ^(Capitulo|Seccion)\s+\d+
+
+<!-- If OCR finds no regex match, split from page 1 as a single section.
+Set to false if you prefer OCR mode to return no sections when nothing matches. -->
+OCR_FALLBACK_TO_FIRST_PAGE: true
+
+<!-- Render DPI used before OCR. Increase for difficult scans (300-600).
+Higher DPI increases OCR quality but also processing time. -->
+OCR_RENDER_DPI: 300
