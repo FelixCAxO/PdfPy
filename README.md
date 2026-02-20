@@ -11,17 +11,14 @@ PdfPy is a Python utility that splits PDF documents into chapters using bookmark
 ## Quick Start
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Install as editable package
+pip install -e .
 
 # Split a PDF automatically
-python -m pdfpy path/to/document.pdf
+pdfpy path/to/document.pdf
 
-# Split at specific pages manually
-python -m pdfpy path/to/document.pdf --manual "5,10,15"
-
-# Enable OCR fallback for scanned/image-based PDFs
-python -m pdfpy path/to/scanned.pdf --ocr
+# Or using the scripts
+./scripts/run_auto.sh path/to/document.pdf
 ```
 
 ---
@@ -32,10 +29,10 @@ python -m pdfpy path/to/scanned.pdf --ocr
 - **Style Fallback**: If bookmarks are missing, it uses font size and regex patterns to find chapter titles.
 - **OCR Fallback**: Optional OCR path for scanned/image-based PDFs (`--ocr`).
 - **Dynamic OCR Extraction**: Configurable OCR regex list plus first-page fallback mode for scans without clear chapter headings.
-- **Configurable**: Fine-tune detection rules in `pdfpy/chapters_config.md` without touching the code.
+- **Configurable**: Fine-tune detection rules in `src/pdfpy/chapters_config.md` without touching the code.
 - **Manual Mode**: Explicitly define split points for precise control.
 - **Merge Option**: Consolidate detected sections into a single clean PDF.
-- **Drag & Drop**: Windows-ready batch files for zero-command usage.
+- **Drag & Drop**: Windows-ready batch files in `scripts/` for zero-command usage.
 
 ---
 
@@ -47,14 +44,14 @@ python -m pdfpy path/to/scanned.pdf --ocr
    cd Pdfpy
    ```
 
-2. **Install requirements**:
+2. **Install as editable package**:
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
 
 3. **Optional OCR setup (for scanned PDFs)**:
    ```bash
-   pip install pillow pytesseract
+   pip install -e ".[ocr]"
    ```
    Also install the local Tesseract OCR binary and ensure it is available on your system PATH.
 
@@ -64,37 +61,34 @@ python -m pdfpy path/to/scanned.pdf --ocr
 
 ### Command Line Interface
 
-PdfPy is structured as a package. Run it using:
+If installed as a package, use the `pdfpy` command:
 
 ```bash
 # Automatic mode (bookmarks -> style fallback)
-python -m pdfpy path/to/your/document.pdf
+pdfpy path/to/your/document.pdf
 
 # Automatic mode + OCR fallback for scanned/image PDFs
-python -m pdfpy path/to/your/document.pdf --ocr
+pdfpy path/to/your/document.pdf --ocr
 
 # Manual mode (comma-separated start pages)
-python -m pdfpy path/to/your/document.pdf --manual "5,12,45"
-
-# Merging sections instead of splitting
-python -m pdfpy path/to/your/document.pdf --merge
+pdfpy path/to/your/document.pdf --manual "5,12,45"
 ```
 
-### Windows Drag-and-Drop
+### Windows Drag-and-Drop (in `scripts/`)
 
-- **`run_auto.bat`**: Drag a PDF here to split it automatically.
-- **`run_manual.bat`**: Drag a PDF here to be prompted for manual split pages.
+- **`scripts/run_auto.bat`**: Drag a PDF here to split it automatically.
+- **`scripts/run_manual.bat`**: Drag a PDF here to be prompted for manual split pages.
 
-### Mac & Linux (Terminal)
+### Mac & Linux (in `scripts/`)
 
-- **`run_auto.sh`**: `./run_auto.sh path/to/document.pdf`
-- **`run_manual.sh`**: `./run_manual.sh path/to/document.pdf`
+- **`scripts/run_auto.sh`**: `./scripts/run_auto.sh path/to/document.pdf`
+- **`scripts/run_manual.sh`**: `./scripts/run_manual.sh path/to/document.pdf`
 
 ---
 
 ## Configuration
 
-Heuristic detection settings are managed in `pdfpy/chapters_config.md`:
+Heuristic detection settings are managed in `src/pdfpy/chapters_config.md`:
 
 - `CHAPTER_REGEX`: Regex pattern for style-based title detection (e.g., `^Chapter \d+`).
 - `MIN_FONT_SIZE`: Minimum font size to consider as a style title.

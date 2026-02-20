@@ -1,0 +1,32 @@
+[project]
+name = "pdfpy"
+version = "2.0.0"
+description = "Smart PDF splitter using bookmarks, style detection, and OCR"
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "PyMuPDF>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pillow",
+    "pytesseract",
+    "ruff>=0.6.0",
+]
+ocr = [
+    "pillow",
+    "pytesseract",
+]
+
+[project.scripts]
+pdfpy = "pdfpy.cli:main"
+
+[tool.ruff]
+cache-dir = ".cache/ruff"
+line-length = 100
+target-version = "py37"
+
+[tool.ruff.lint]
+select = ["E","F","I","B","UP"]
